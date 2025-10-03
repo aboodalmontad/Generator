@@ -122,7 +122,6 @@ main {
   max-width: 100%;
   object-fit: cover;
   transition: filter 0.2s;
-  transform: rotateY(180deg);
   aspect-ratio: 1;
 }
 .video:has(.focusedPhoto) video {
@@ -176,6 +175,39 @@ main {
 }
 .videoControls .icon {
   font-size: 42px;
+}
+.shutter-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+.switch-camera-button {
+  background: #000000b3;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-radius: 50%;
+  padding: 10px;
+  transition: all 0.2s;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.switch-camera-button .icon {
+  font-size: 32px;
+  color: #ddd;
+  transition: color 0.2s;
+}
+.switch-camera-button:hover {
+  scale: 1.1;
+}
+.switch-camera-button:hover .icon {
+  color: #fff;
+}
+.switch-camera-button:active {
+  scale: 0.8;
 }
 .modeSelector {
   display: flex;
@@ -419,11 +451,16 @@ main {
 .button:active {
   scale: 0.8;
 }
-.downloadButton {
+.focusedPhoto-actions {
   position: absolute;
   bottom: 0;
   left: 50%;
   translate: -50% 50%;
+  display: flex;
+  gap: 15px;
+}
+.share-button {
+  background: #3b5998;
 }
 .makeGif {
   position: sticky;

@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import {useRef, useState, useCallback} from 'react'
+import {useRef, useState, useCallback, useEffect} from 'react'
 import c from 'clsx'
 import {
   snapPhoto,
@@ -33,22 +33,63 @@ export default function App() {
   const [hoveredMode, setHoveredMode] = useState(null)
   const [tooltipPosition, setTooltipPosition] = useState({top: 0, left: 0})
   const [showCustomPrompt, setShowCustomPrompt] = useState(false)
+  const [facingMode, setFacingMode] = useState('user')
+  const [hasMultipleCameras, setHasMultipleCameras] = useState(false)
+  const [canShare, setCanShare] = useState(false)
   const videoRef = useRef(null)
 
-  const startVideo = async () => {
-    setDidInitVideo(true)
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {width: {ideal: 1920}, height: {ideal: 1080}},
-      audio: false,
-      facingMode: {ideal: 'user'}
-    })
-    setVideoActive(true)
-    videoRef.current.srcObject = stream
+  useEffect(() => {
+    const dummyFile = new File(['dummy'], 'dummy.jpg', {type: 'image/jpeg'})
+    if (
+      navigator.share &&
+      navigator.canShare &&
+      navigator.canShare({files: [dummyFile]})
+    ) {
+      setCanShare(true)
+    }
+  }, [])
 
-    const {width, height} = stream.getVideoTracks()[0].getSettings()
-    const squareSize = Math.min(width, height)
-    canvas.width = squareSize
-    canvas.height = squareSize
+  const startVideo = async mode => {
+    if (videoRef.current?.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop())
+    }
+
+    setDidInitVideo(true)
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: {ideal: 1920},
+          height: {ideal: 1080},
+          facingMode: {ideal: mode}
+        },
+        audio: false
+      })
+      videoRef.current.srcObject = stream
+      setVideoActive(true)
+
+      if (!hasMultipleCameras) {
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        if (devices.filter(d => d.kind === 'videoinput').length > 1) {
+          setHasMultipleCameras(true)
+        }
+      }
+
+      const {width, height} = stream.getVideoTracks()[0].getSettings()
+      const squareSize = Math.min(width, height)
+      canvas.width = squareSize
+      canvas.height = squareSize
+    } catch (err) {
+      console.error('Failed to start video', err)
+      setVideoActive(false)
+      setDidInitVideo(false)
+    }
+  }
+
+  const switchCamera = () => {
+    const newMode = facingMode === 'user' ? 'environment' : 'user'
+    setFacingMode(newMode)
+    startVideo(newMode)
   }
 
   const takePhoto = () => {
@@ -61,18 +102,33 @@ export default function App() {
 
     ctx.clearRect(0, 0, squareSize, squareSize)
     ctx.setTransform(1, 0, 0, 1, 0, 0)
-    ctx.scale(-1, 1)
-    ctx.drawImage(
-      video,
-      sourceX,
-      sourceY,
-      sourceSize,
-      sourceSize,
-      -squareSize,
-      0,
-      squareSize,
-      squareSize
-    )
+
+    if (facingMode === 'user') {
+      ctx.scale(-1, 1)
+      ctx.drawImage(
+        video,
+        sourceX,
+        sourceY,
+        sourceSize,
+        sourceSize,
+        -squareSize,
+        0,
+        squareSize,
+        squareSize
+      )
+    } else {
+      ctx.drawImage(
+        video,
+        sourceX,
+        sourceY,
+        sourceSize,
+        sourceSize,
+        0,
+        0,
+        squareSize,
+        squareSize
+      )
+    }
     snapPhoto(canvas.toDataURL('image/jpeg'))
     setDidJustSnap(true)
     setTimeout(() => setDidJustSnap(false), 1000)
@@ -83,6 +139,30 @@ export default function App() {
     a.href = gifUrl || imageData.outputs[focusedId]
     a.download = `gembooth.${gifUrl ? 'gif' : 'jpg'}`
     a.click()
+  }
+
+  const shareImage = async () => {
+    const imageUrl = gifUrl || imageData.outputs[focusedId]
+    if (!imageUrl) return
+
+    try {
+      const response = await fetch(imageUrl)
+      const blob = await response.blob()
+      const extension = gifUrl ? 'gif' : 'jpg'
+      const file = new File([blob], `gembooth-image.${extension}`, {
+        type: blob.type
+      })
+
+      await navigator.share({
+        title: 'Made with GemBooth!',
+        text: 'Check out this photo I made using Gemini and GemBooth.',
+        files: [file]
+      })
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('Error sharing the image:', err)
+      }
+    }
   }
 
   const handleModeHover = useCallback((modeInfo, event) => {
@@ -145,10 +225,11 @@ export default function App() {
           autoPlay
           playsInline
           disablePictureInPicture="true"
+          style={{transform: facingMode === 'user' ? 'rotateY(180deg)' : 'none'}}
         />
         {didJustSnap && <div className="flash" />}
         {!videoActive && (
-          <button className="startButton" onClick={startVideo}>
+          <button className="startButton" onClick={() => startVideo(facingMode)}>
             <h1>📸 GemBooth</h1>
             <p>{didInitVideo ? 'One sec…' : 'Tap anywhere to start webcam'}</p>
           </button>
@@ -156,10 +237,20 @@ export default function App() {
 
         {videoActive && (
           <div className="videoControls">
-            <button onClick={takePhoto} className="shutter">
-              <span className="icon">camera</span>
-            </button>
-
+            <div className="shutter-controls">
+              <button onClick={takePhoto} className="shutter">
+                <span className="icon">camera</span>
+              </button>
+              {hasMultipleCameras && (
+                <button
+                  onClick={switchCamera}
+                  className="switch-camera-button"
+                  aria-label="Switch camera"
+                >
+                  <span className="icon">flip_camera_ios</span>
+                </button>
+              )}
+            </div>
             <ul className="modeSelector">
               <li
                 key="custom"
@@ -212,9 +303,16 @@ export default function App() {
               alt="photo"
               draggable={false}
             />
-            <button className="button downloadButton" onClick={downloadImage}>
-              Download
-            </button>
+            <div className="focusedPhoto-actions">
+              <button className="button" onClick={downloadImage}>
+                <span className="icon">download</span> Download
+              </button>
+              {canShare && (
+                <button className="button share-button" onClick={shareImage}>
+                  <span className="icon">share</span> Share
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
