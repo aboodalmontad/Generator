@@ -7,10 +7,12 @@ import c from 'clsx'
 import {
   snapPhoto,
   deletePhoto,
-  setCustomPrompt
+  setCustomPrompt,
+  setActiveMode
 } from '../lib/actions'
 import useStore from '../lib/store'
 import imageData from '../lib/imageData'
+import modes from '../lib/modes'
 
 const canvas = document.createElement('canvas')
 const ctx = canvas.getContext('2d')
@@ -18,15 +20,19 @@ const ctx = canvas.getContext('2d')
 export default function App() {
   const photos = useStore(state => state.photos)
   const customPrompt = useStore(state => state.customPrompt)
+  const activeMode = useStore(state => state.activeMode)
   const promptHistory = useStore(state => state.promptHistory)
   const [videoActive, setVideoActive] = useState(false)
   const [didInitVideo, setDidInitVideo] = useState(false)
   const [focusedId, setFocusedId] = useState(null)
+  const [comparisonValue, setComparisonValue] = useState(50)
   const [didJustSnap, setDidJustSnap] = useState(false)
   const [facingMode, setFacingMode] = useState('user')
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false)
   const videoRef = useRef(null)
   const fileInputRef = useRef(null)
+
+  const isShutterDisabled = activeMode === 'custom' && !customPrompt.trim()
 
   const startVideo = async mode => {
     if (videoRef.current?.srcObject) {
@@ -180,6 +186,18 @@ export default function App() {
 
         {videoActive && (
           <div className="videoControls">
+            <div className="mode-selector">
+              <ul>
+                {Object.entries(modes).map(([id, {title, emoji}]) => (
+                  <li key={id} className={c({active: activeMode === id})}>
+                    <button onClick={() => setActiveMode(id)}>
+                      <span className="emoji">{emoji}</span>
+                      <span>{title}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
             <div className="shutter-controls">
               <button
                 className="switch-camera-button upload-button"
@@ -188,7 +206,11 @@ export default function App() {
               >
                 <span className="icon">upload</span>
               </button>
-              <button onClick={takePhoto} className="shutter">
+              <button
+                onClick={takePhoto}
+                className="shutter"
+                disabled={isShutterDisabled}
+              >
                 <span className="icon">camera</span>
               </button>
               {hasMultipleCameras && (
@@ -210,37 +232,63 @@ export default function App() {
               <span className="icon">close</span>
             </button>
             <div className="focusedPhoto-content">
-              <div className="image-wrapper">
-                <p>الأصلية</p>
+              <div className="comparison-view">
                 <img
+                  className="comparison-original"
                   src={imageData.inputs[focusedId]}
                   alt="الصورة الأصلية"
                   draggable={false}
                 />
-                <button
-                  className="button"
-                  onClick={() =>
-                    downloadImage(imageData.inputs[focusedId], 'original')
-                  }
-                >
-                  <span className="icon">download</span> تنزيل
-                </button>
-              </div>
-              <div className="image-wrapper">
-                <p>المولدة</p>
                 <img
+                  className="comparison-generated"
                   src={imageData.outputs[focusedId]}
                   alt="الصورة المولدة"
                   draggable={false}
+                  style={{
+                    clipPath: `polygon(0 0, ${comparisonValue}% 0, ${comparisonValue}% 100%, 0 100%)`
+                  }}
                 />
-                <button
-                  className="button"
-                  onClick={() =>
-                    downloadImage(imageData.outputs[focusedId], 'generated')
-                  }
+                <div
+                  className="comparison-handle"
+                  style={{left: `${comparisonValue}%`}}
                 >
-                  <span className="icon">download</span> تنزيل
-                </button>
+                  <div className="comparison-handle-grip">
+                    <span className="icon">unfold_more</span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  className="comparison-slider"
+                  min="0"
+                  max="100"
+                  value={comparisonValue}
+                  onChange={e => setComparisonValue(e.target.value)}
+                  aria-label="مقارنة الصور"
+                />
+              </div>
+              <div className="focusedPhoto-actions">
+                <div className="action-group">
+                  <p>الأصلية</p>
+                  <button
+                    className="button"
+                    onClick={() =>
+                      downloadImage(imageData.inputs[focusedId], 'original')
+                    }
+                  >
+                    <span className="icon">download</span> تنزيل
+                  </button>
+                </div>
+                <div className="action-group">
+                  <p>المولدة</p>
+                  <button
+                    className="button"
+                    onClick={() =>
+                      downloadImage(imageData.outputs[focusedId], 'generated')
+                    }
+                  >
+                    <span className="icon">download</span> تنزيل
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -249,14 +297,16 @@ export default function App() {
 
       {videoActive && (
         <>
-          <div className="prompt-container">
-            <textarea
-              placeholder="اكتب طلبك هنا..."
-              value={customPrompt}
-              onChange={e => setCustomPrompt(e.target.value)}
-              aria-label="طلب توليد الصورة"
-            />
-          </div>
+          {activeMode === 'custom' && (
+            <div className="prompt-container">
+              <textarea
+                placeholder="اكتب طلبك هنا..."
+                value={customPrompt}
+                onChange={e => setCustomPrompt(e.target.value)}
+                aria-label="طلب توليد الصورة"
+              />
+            </div>
+          )}
           {promptHistory.length > 0 && (
             <div className="prompt-history">
               <ul>
@@ -264,7 +314,10 @@ export default function App() {
                   <li key={item.id}>
                     <button
                       className="prompt-chip"
-                      onClick={() => setCustomPrompt(item.prompt)}
+                      onClick={() => {
+                        setCustomPrompt(item.prompt)
+                        setActiveMode('custom')
+                      }}
                     >
                       {item.title}
                     </button>
@@ -306,9 +359,7 @@ export default function App() {
                       }
                       draggable={false}
                     />
-                    <p className="emoji">
-                      ✏️
-                    </p>
+                    <p className="emoji">{modes[mode]?.emoji || '✏️'}</p>
                   </button>
                 </li>
               ))

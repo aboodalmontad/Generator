@@ -5,6 +5,7 @@
 import useStore from './store'
 import imageData from './imageData'
 import {generateImage, generateText} from './llm'
+import modes from './modes'
 
 const get = useStore.getState
 const set = useStore.setState
@@ -23,14 +24,26 @@ export const init = () => {
 
 export const snapPhoto = async b64 => {
   const id = crypto.randomUUID()
-  const {customPrompt, promptHistory} = get()
+  const {customPrompt, promptHistory, activeMode} = get()
+  const mode = modes[activeMode]
+  const promptToUse = activeMode === 'custom' ? customPrompt : mode.prompt
+
+  if (!promptToUse.trim()) {
+    console.warn('Attempted to snap photo with an empty prompt.')
+    return
+  }
+
   imageData.inputs[id] = b64
 
   set(state => {
-    state.photos.unshift({id, mode: 'custom', isBusy: true})
+    state.photos.unshift({id, mode: activeMode, isBusy: true})
   })
 
-  if (customPrompt && !promptHistory.some(p => p.prompt === customPrompt)) {
+  if (
+    activeMode === 'custom' &&
+    customPrompt &&
+    !promptHistory.some(p => p.prompt === customPrompt)
+  ) {
     try {
       const title = await generateText({
         model: textModel,
@@ -53,7 +66,7 @@ export const snapPhoto = async b64 => {
   try {
     const result = await generateImage({
       model: imageModel,
-      prompt: customPrompt,
+      prompt: promptToUse,
       inputFile: b64
     })
 
@@ -85,6 +98,11 @@ export const deletePhoto = id => {
 export const setCustomPrompt = prompt =>
   set(state => {
     state.customPrompt = prompt
+  })
+
+export const setActiveMode = mode =>
+  set(state => {
+    state.activeMode = mode
   })
 
 init()

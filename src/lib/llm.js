@@ -40,7 +40,6 @@ const _generateImage = async ({model, prompt, inputFile}) => {
           config: {responseModalities: [Modality.IMAGE]},
           contents: {
             parts: [
-              {text: prompt},
               ...(inputFile
                 ? [
                     {
@@ -50,10 +49,10 @@ const _generateImage = async ({model, prompt, inputFile}) => {
                       }
                     }
                   ]
-                : [])
+                : []),
+              {text: prompt}
             ]
-          },
-          safetySettings
+          }
         }
       )
 
@@ -102,7 +101,9 @@ const _generateText = async ({model, prompt}) => {
         {
           model,
           contents: prompt,
-          safetySettings
+          config: {
+            safetySettings
+          }
         }
       )
 
