@@ -13,6 +13,7 @@
     "auto-zustand-selectors-hook": "latest",
     "clsx": "latest",
     "gifenc": "latest",
+    "idb": "latest",
     "immer": "latest",
     "lodash.shuffle": "latest",
     "p-limit": "latest",

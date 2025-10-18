@@ -30,7 +30,7 @@ const _generateImage = async ({model, prompt, inputFile, signal}) => {
       const modelPromise = ai.models.generateContent(
         {
           model,
-          config: {responseModalities: [Modality.TEXT, Modality.IMAGE]},
+          config: {responseModalities: [Modality.IMAGE]},
           contents: {
             parts: [
               {text: prompt},

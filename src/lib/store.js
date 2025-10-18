@@ -7,6 +7,7 @@ import {create} from 'zustand'
 import {immer} from 'zustand/middleware/immer'
 import {persist} from 'zustand/middleware'
 import {createSelectorFunctions} from 'auto-zustand-selectors-hook'
+import {indexedDBStorage} from './indexedDBStorage.js'
 
 export default createSelectorFunctions(
   create(
@@ -22,6 +23,7 @@ export default createSelectorFunctions(
       })),
       {
         name: 'gembooth-prompt-history',
+        storage: indexedDBStorage,
         partialize: state => ({promptHistory: state.promptHistory})
       }
     )

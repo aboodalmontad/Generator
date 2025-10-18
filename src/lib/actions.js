@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import {GIFEncoder, quantize, applyPalette} from 'https://unpkg.com/gifenc'
+import * as gifenc from 'gifenc'
 import useStore from './store'
 import imageData from './imageData'
 import {generateImage, generateText} from './llm'
@@ -52,19 +52,27 @@ export const snapPhoto = async b64 => {
     }
   }
 
-  const result = await generateImage({
-    model: imageModel,
-    prompt: customPrompt,
-    inputFile: b64
-  })
+  try {
+    const result = await generateImage({
+      model: imageModel,
+      prompt: customPrompt,
+      inputFile: b64
+    })
 
-  imageData.outputs[id] = result
+    imageData.outputs[id] = result
 
-  set(state => {
-    state.photos = state.photos.map(photo =>
-      photo.id === id ? {...photo, isBusy: false} : photo
-    )
-  })
+    set(state => {
+      state.photos = state.photos.map(photo =>
+        photo.id === id ? {...photo, isBusy: false} : photo
+      )
+    })
+  } catch (e) {
+    console.error('Failed to generate image', e)
+    set(state => {
+      state.photos = state.photos.filter(p => p.id !== id)
+    })
+    delete imageData.inputs[id]
+  }
 }
 
 export const deletePhoto = id => {
@@ -116,8 +124,8 @@ const processImageToCanvas = async (base64Data, size) => {
 }
 
 const addFrameToGif = (gif, imageData, size, delay) => {
-  const palette = quantize(imageData.data, 256)
-  const indexed = applyPalette(imageData.data, palette)
+  const palette = gifenc.quantize(imageData.data, 256)
+  const indexed = gifenc.applyPalette(imageData.data, palette)
 
   gif.writeFrame(indexed, size, size, {
     palette,
@@ -133,7 +141,7 @@ export const makeGif = async () => {
   })
 
   try {
-    const gif = new GIFEncoder()
+    const gif = gifenc.GIFEncoder()
     const readyPhotos = photos.filter(photo => !photo.isBusy)
 
     for (const photo of readyPhotos) {
