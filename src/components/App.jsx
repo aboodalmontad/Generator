@@ -7,43 +7,26 @@ import c from 'clsx'
 import {
   snapPhoto,
   deletePhoto,
-  makeGif,
-  hideGif,
   setCustomPrompt
 } from '../lib/actions'
 import useStore from '../lib/store'
 import imageData from '../lib/imageData'
-import modes from '../lib/modes'
 
 const canvas = document.createElement('canvas')
 const ctx = canvas.getContext('2d')
 
 export default function App() {
-  const photos = useStore.use.photos()
-  const customPrompt = useStore.use.customPrompt()
-  const promptHistory = useStore.use.promptHistory()
-  const gifInProgress = useStore.use.gifInProgress()
-  const gifUrl = useStore.use.gifUrl()
+  const photos = useStore(state => state.photos)
+  const customPrompt = useStore(state => state.customPrompt)
+  const promptHistory = useStore(state => state.promptHistory)
   const [videoActive, setVideoActive] = useState(false)
   const [didInitVideo, setDidInitVideo] = useState(false)
   const [focusedId, setFocusedId] = useState(null)
   const [didJustSnap, setDidJustSnap] = useState(false)
   const [facingMode, setFacingMode] = useState('user')
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false)
-  const [canShare, setCanShare] = useState(false)
   const videoRef = useRef(null)
   const fileInputRef = useRef(null)
-
-  useEffect(() => {
-    const dummyFile = new File(['dummy'], 'dummy.jpg', {type: 'image/jpeg'})
-    if (
-      navigator.share &&
-      navigator.canShare &&
-      navigator.canShare({files: [dummyFile]})
-    ) {
-      setCanShare(true)
-    }
-  }, [])
 
   const startVideo = async mode => {
     if (videoRef.current?.srcObject) {
@@ -142,35 +125,11 @@ export default function App() {
     e.target.value = ''
   }
 
-  const downloadImage = () => {
+  const downloadImage = (href, name) => {
     const a = document.createElement('a')
-    a.href = gifUrl || imageData.outputs[focusedId]
-    a.download = `fotographer.${gifUrl ? 'gif' : 'jpg'}`
+    a.href = href
+    a.download = `fotographer-${name}.jpg`
     a.click()
-  }
-
-  const shareImage = async () => {
-    const imageUrl = gifUrl || imageData.outputs[focusedId]
-    if (!imageUrl) return
-
-    try {
-      const response = await fetch(imageUrl)
-      const blob = await response.blob()
-      const extension = gifUrl ? 'gif' : 'jpg'
-      const file = new File([blob], `fotographer-image.${extension}`, {
-        type: blob.type
-      })
-
-      await navigator.share({
-        title: 'صنعت بواسطة فوتوغرفر!',
-        text: 'شوف هالصورة اللي عملتها باستخدام Gemini و فوتوغرفر.',
-        files: [file]
-      })
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.error('Error sharing the image:', err)
-      }
-    }
   }
 
   return (
@@ -185,7 +144,6 @@ export default function App() {
       <div
         className="video"
         onClick={() => {
-          hideGif()
           setFocusedId(null)
         }}
       >
@@ -246,31 +204,44 @@ export default function App() {
           </div>
         )}
 
-        {(focusedId || gifUrl) && (
+        {focusedId && (
           <div className="focusedPhoto" onClick={e => e.stopPropagation()}>
-            <button
-              className="circleBtn"
-              onClick={() => {
-                hideGif()
-                setFocusedId(null)
-              }}
-            >
+            <button className="circleBtn" onClick={() => setFocusedId(null)}>
               <span className="icon">close</span>
             </button>
-            <img
-              src={gifUrl || imageData.outputs[focusedId]}
-              alt="photo"
-              draggable={false}
-            />
-            <div className="focusedPhoto-actions">
-              <button className="button" onClick={downloadImage}>
-                <span className="icon">download</span> تنزيل
-              </button>
-              {canShare && (
-                <button className="button share-button" onClick={shareImage}>
-                  <span className="icon">share</span> مشاركة
+            <div className="focusedPhoto-content">
+              <div className="image-wrapper">
+                <p>الأصلية</p>
+                <img
+                  src={imageData.inputs[focusedId]}
+                  alt="الصورة الأصلية"
+                  draggable={false}
+                />
+                <button
+                  className="button"
+                  onClick={() =>
+                    downloadImage(imageData.inputs[focusedId], 'original')
+                  }
+                >
+                  <span className="icon">download</span> تنزيل
                 </button>
-              )}
+              </div>
+              <div className="image-wrapper">
+                <p>المولدة</p>
+                <img
+                  src={imageData.outputs[focusedId]}
+                  alt="الصورة المولدة"
+                  draggable={false}
+                />
+                <button
+                  className="button"
+                  onClick={() =>
+                    downloadImage(imageData.outputs[focusedId], 'generated')
+                  }
+                >
+                  <span className="icon">download</span> تنزيل
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -326,7 +297,6 @@ export default function App() {
                     onClick={() => {
                       if (!isBusy) {
                         setFocusedId(id)
-                        hideGif()
                       }
                     }}
                   >
@@ -337,7 +307,7 @@ export default function App() {
                       draggable={false}
                     />
                     <p className="emoji">
-                      {mode === 'custom' ? '✏️' : modes[mode].emoji}
+                      ✏️
                     </p>
                   </button>
                 </li>
@@ -351,15 +321,6 @@ export default function App() {
                 </li>
               )}
         </ul>
-        {photos.filter(p => !p.isBusy).length > 0 && (
-          <button
-            className="button makeGif"
-            onClick={makeGif}
-            disabled={gifInProgress}
-          >
-            {gifInProgress ? 'لحظة...' : 'اصنع صورة متحركة!'}
-          </button>
-        )}
       </div>
     </main>
   )

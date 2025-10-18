@@ -8,7 +8,14 @@ import pLimit from 'p-limit'
 const timeoutMs = 123_333
 const maxRetries = 5
 const baseDelay = 1_233
-const ai = new GoogleGenAI({apiKey: process.env.API_KEY})
+
+let ai;
+const getAi = () => {
+  if (!ai) {
+    ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+  }
+  return ai;
+};
 
 const imageLimiter = pLimit(2)
 const textLimiter = pLimit(4)
@@ -20,14 +27,14 @@ const safetySettings = [
   'HARM_CATEGORY_HARASSMENT'
 ].map(category => ({category, threshold: 'BLOCK_NONE'}))
 
-const _generateImage = async ({model, prompt, inputFile, signal}) => {
+const _generateImage = async ({model, prompt, inputFile}) => {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('timeout')), timeoutMs)
       )
 
-      const modelPromise = ai.models.generateContent(
+      const modelPromise = getAi().models.generateContent(
         {
           model,
           config: {responseModalities: [Modality.IMAGE]},
@@ -47,8 +54,7 @@ const _generateImage = async ({model, prompt, inputFile, signal}) => {
             ]
           },
           safetySettings
-        },
-        {signal}
+        }
       )
 
       const response = await Promise.race([modelPromise, timeoutPromise])
@@ -66,7 +72,7 @@ const _generateImage = async ({model, prompt, inputFile, signal}) => {
 
       return 'data:image/png;base64,' + inlineDataPart.inlineData.data
     } catch (error) {
-      if (signal?.aborted || error.name === 'AbortError') {
+      if (error.name === 'AbortError') {
         return
       }
 
@@ -85,20 +91,19 @@ const _generateImage = async ({model, prompt, inputFile, signal}) => {
 
 export const generateImage = args => imageLimiter(() => _generateImage(args))
 
-const _generateText = async ({model, prompt, signal}) => {
+const _generateText = async ({model, prompt}) => {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('timeout')), timeoutMs)
       )
 
-      const modelPromise = ai.models.generateContent(
+      const modelPromise = getAi().models.generateContent(
         {
           model,
           contents: prompt,
           safetySettings
-        },
-        {signal}
+        }
       )
 
       const response = await Promise.race([modelPromise, timeoutPromise])
@@ -109,7 +114,7 @@ const _generateText = async ({model, prompt, signal}) => {
 
       return response.text.trim()
     } catch (error) {
-      if (signal?.aborted || error.name === 'AbortError') {
+      if (error.name === 'AbortError') {
         return
       }
 
