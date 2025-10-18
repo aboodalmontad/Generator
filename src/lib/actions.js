@@ -5,13 +5,13 @@
 import {GIFEncoder, quantize, applyPalette} from 'https://unpkg.com/gifenc'
 import useStore from './store'
 import imageData from './imageData'
-import gen from './llm'
-import modes from './modes'
+import {generateImage, generateText} from './llm'
 
 const get = useStore.getState
 const set = useStore.setState
 const gifSize = 512
-const model = 'gemini-2.5-flash-image-preview'
+const imageModel = 'gemini-2.5-flash-image'
+const textModel = 'gemini-2.5-flash'
 
 export const init = () => {
   if (get().didInit) {
@@ -25,16 +25,36 @@ export const init = () => {
 
 export const snapPhoto = async b64 => {
   const id = crypto.randomUUID()
-  const {activeMode, customPrompt} = get()
+  const {customPrompt, promptHistory} = get()
   imageData.inputs[id] = b64
 
   set(state => {
-    state.photos.unshift({id, mode: activeMode, isBusy: true})
+    state.photos.unshift({id, mode: 'custom', isBusy: true})
   })
 
-  const result = await gen({
-    model,
-    prompt: activeMode === 'custom' ? customPrompt : modes[activeMode].prompt,
+  if (customPrompt && !promptHistory.some(p => p.prompt === customPrompt)) {
+    try {
+      const title = await generateText({
+        model: textModel,
+        prompt: `Generate a very short, two or three-word title for the following prompt. Return only the title and nothing else. Prompt: "${customPrompt}"`
+      })
+      if (title) {
+        set(state => {
+          state.promptHistory.unshift({
+            id: crypto.randomUUID(),
+            title: title.replace(/"/g, ''),
+            prompt: customPrompt
+          })
+        })
+      }
+    } catch (e) {
+      console.error('Failed to generate prompt title', e)
+    }
+  }
+
+  const result = await generateImage({
+    model: imageModel,
+    prompt: customPrompt,
     inputFile: b64
   })
 
@@ -55,11 +75,6 @@ export const deletePhoto = id => {
   delete imageData.inputs[id]
   delete imageData.outputs[id]
 }
-
-export const setMode = mode =>
-  set(state => {
-    state.activeMode = mode
-  })
 
 const processImageToCanvas = async (base64Data, size) => {
   const img = new Image()

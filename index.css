@@ -138,22 +138,6 @@ main {
   opacity: 1;
   animation: flash 0.3s ease-out forwards;
 }
-.customPrompt {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  translate: -50% -50%;
-  background: #000c;
-  z-index: 100;
-  padding: 20px;
-  width: 90%;
-  max-width: 420px;
-  border-radius: 5px;
-}
-.customPrompt textarea {
-  font-size: 14px;
-  width: 100%;
-}
 @keyframes flash {
   0% {
     opacity: 1;
@@ -169,9 +153,9 @@ main {
   right: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: center;
-  gap: 20px;
+  padding-bottom: 20px;
 }
 .videoControls .icon {
   font-size: 42px;
@@ -181,6 +165,9 @@ main {
   justify-content: center;
   align-items: center;
   gap: 20px;
+}
+.shutter-controls .upload-button {
+  order: -1;
 }
 .switch-camera-button {
   background: #000000b3;
@@ -209,44 +196,57 @@ main {
 .switch-camera-button:active {
   scale: 0.8;
 }
-.modeSelector {
+.prompt-container {
   display: flex;
-  gap: 16px;
-  background: #000c;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  background: #111;
   width: 100%;
-  padding: 10px;
+  padding: 15px 15px 0;
   border-top: 1px solid #333;
-  overflow: auto;
 }
-.modeSelector li {
-  position: relative;
-}
-.modeSelector button {
-  text-transform: uppercase;
+.prompt-container textarea {
+  flex: 1;
   font-size: 16px;
+  padding: 8px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  height: 80px;
+  background: #222;
+}
+.prompt-container textarea::placeholder {
+  color: #888;
+}
+.prompt-history {
+  background: #111;
+  padding: 15px;
+  padding-top: 10px;
+  overflow-x: auto;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.prompt-history::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, and Opera */
+}
+.prompt-history ul {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  filter: grayscale(1) brightness(0.7);
-  transition: all 0.2s;
+  gap: 10px;
+  list-style: none;
+}
+.prompt-chip {
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: #282828;
+  color: #eee;
+  font-size: 14px;
   white-space: nowrap;
-  gap: 5px;
-  position: relative;
-  background: transparent;
-  padding: 1px 7px;
-  border-radius: 3px;
+  cursor: pointer;
+  border: 1px solid #444;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
 }
-.modeSelector button.active {
-  filter: grayscale(0) brightness(1) !important;
-  background: #fff;
-  color: #000;
-}
-@media (max-width: 768px) {
-  .modeSelector button {
-    font-size: 14px;
-  }
+.prompt-chip:hover {
+  background: #383838;
+  border-color: #666;
 }
 .startButton {
   position: absolute;
@@ -260,6 +260,11 @@ main {
   align-items: center;
   justify-content: center;
   gap: 20px;
+}
+.start-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
 }
 .shutter {
   background: #000000b3;
@@ -445,6 +450,9 @@ main {
   background: #1e88e5;
   transition: all 0.2s;
 }
+.button .icon {
+  font-size: 20px;
+}
 .button:hover {
   scale: 1.1;
 }
@@ -489,45 +497,4 @@ main {
   to {
     background-position: 200% 0;
   }
-}
-@keyframes tooltipFadeIn {
-  0% {
-    opacity: 0;
-    transform: translate(-50%) translateY(calc(-100% - 15px));
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%) translateY(calc(-100% - 5px));
-  }
-}
-.tooltip {
-  position: fixed;
-  background: #000000e6;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  z-index: 1000;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 20px #00000080;
-  pointer-events: none;
-  width: 250px;
-  white-space: normal;
-  animation: tooltipFadeIn 0.2s ease-out forwards;
-  color: #ccc;
-}
-@media (max-width: 768px) {
-  .tooltip {
-    display: none;
-  }
-}
-.tooltip.isFirst {
-  margin-left: 80px;
-}
-.tooltip h4 {
-  text-transform: uppercase;
-  font-size: 10px;
-  color: #777;
-  margin-top: 5px;
 }

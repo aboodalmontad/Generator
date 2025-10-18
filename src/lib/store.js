@@ -5,18 +5,25 @@
 import 'immer'
 import {create} from 'zustand'
 import {immer} from 'zustand/middleware/immer'
+import {persist} from 'zustand/middleware'
 import {createSelectorFunctions} from 'auto-zustand-selectors-hook'
-import modes from './modes'
 
 export default createSelectorFunctions(
   create(
-    immer(() => ({
-      didInit: false,
-      photos: [],
-      activeMode: Object.keys(modes)[0],
-      gifInProgress: false,
-      gifUrl: null,
-      customPrompt: ''
-    }))
+    persist(
+      immer(() => ({
+        didInit: false,
+        photos: [],
+        activeMode: 'custom',
+        gifInProgress: false,
+        gifUrl: null,
+        customPrompt: '',
+        promptHistory: []
+      })),
+      {
+        name: 'gembooth-prompt-history',
+        partialize: state => ({promptHistory: state.promptHistory})
+      }
+    )
   )
 )

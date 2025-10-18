@@ -2,11 +2,10 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import {useRef, useState, useCallback, useEffect} from 'react'
+import {useRef, useState, useEffect} from 'react'
 import c from 'clsx'
 import {
   snapPhoto,
-  setMode,
   deletePhoto,
   makeGif,
   hideGif,
@@ -18,25 +17,22 @@ import modes from '../lib/modes'
 
 const canvas = document.createElement('canvas')
 const ctx = canvas.getContext('2d')
-const modeKeys = Object.keys(modes)
 
 export default function App() {
   const photos = useStore.use.photos()
   const customPrompt = useStore.use.customPrompt()
-  const activeMode = useStore.use.activeMode()
+  const promptHistory = useStore.use.promptHistory()
   const gifInProgress = useStore.use.gifInProgress()
   const gifUrl = useStore.use.gifUrl()
   const [videoActive, setVideoActive] = useState(false)
   const [didInitVideo, setDidInitVideo] = useState(false)
   const [focusedId, setFocusedId] = useState(null)
   const [didJustSnap, setDidJustSnap] = useState(false)
-  const [hoveredMode, setHoveredMode] = useState(null)
-  const [tooltipPosition, setTooltipPosition] = useState({top: 0, left: 0})
-  const [showCustomPrompt, setShowCustomPrompt] = useState(false)
   const [facingMode, setFacingMode] = useState('user')
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false)
   const [canShare, setCanShare] = useState(false)
   const videoRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     const dummyFile = new File(['dummy'], 'dummy.jpg', {type: 'image/jpeg'})
@@ -134,6 +130,18 @@ export default function App() {
     setTimeout(() => setDidJustSnap(false), 1000)
   }
 
+  const handleFileSelect = e => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = e => {
+      snapPhoto(e.target.result)
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
   const downloadImage = () => {
     const a = document.createElement('a')
     a.href = gifUrl || imageData.outputs[focusedId]
@@ -165,26 +173,15 @@ export default function App() {
     }
   }
 
-  const handleModeHover = useCallback((modeInfo, event) => {
-    if (!modeInfo) {
-      setHoveredMode(null)
-      return
-    }
-
-    setHoveredMode(modeInfo)
-
-    const rect = event.currentTarget.getBoundingClientRect()
-    const tooltipTop = rect.top
-    const tooltipLeft = rect.left + rect.width / 2
-
-    setTooltipPosition({
-      top: tooltipTop,
-      left: tooltipLeft
-    })
-  }, [])
-
   return (
     <main>
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+        style={{display: 'none'}}
+        accept="image/*"
+      />
       <div
         className="video"
         onClick={() => {
@@ -192,33 +189,6 @@ export default function App() {
           setFocusedId(null)
         }}
       >
-        {showCustomPrompt && (
-          <div className="customPrompt">
-            <button
-              className="circleBtn"
-              onClick={() => {
-                setShowCustomPrompt(false)
-
-                if (customPrompt.trim().length === 0) {
-                  setMode(modeKeys[0])
-                }
-              }}
-            >
-              <span className="icon">close</span>
-            </button>
-            <textarea
-              type="text"
-              placeholder="Enter a custom prompt"
-              value={customPrompt}
-              onChange={e => setCustomPrompt(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  setShowCustomPrompt(false)
-                }
-              }}
-            />
-          </div>
-        )}
         <video
           ref={videoRef}
           muted
@@ -229,15 +199,37 @@ export default function App() {
         />
         {didJustSnap && <div className="flash" />}
         {!videoActive && (
-          <button className="startButton" onClick={() => startVideo(facingMode)}>
+          <div className="startButton">
             <h1>📸 GemBooth</h1>
-            <p>{didInitVideo ? 'One sec…' : 'Tap anywhere to start webcam'}</p>
-          </button>
+            <p>
+              {didInitVideo
+                ? 'One sec…'
+                : 'Start by using your webcam or uploading a photo.'}
+            </p>
+            <div className="start-actions">
+              <button className="button" onClick={() => startVideo(facingMode)}>
+                <span className="icon">videocam</span> Use Webcam
+              </button>
+              <button
+                className="button"
+                onClick={() => fileInputRef.current.click()}
+              >
+                <span className="icon">upload</span> Upload Photo
+              </button>
+            </div>
+          </div>
         )}
 
         {videoActive && (
           <div className="videoControls">
             <div className="shutter-controls">
+              <button
+                className="switch-camera-button upload-button"
+                aria-label="Upload photo"
+                onClick={() => fileInputRef.current.click()}
+              >
+                <span className="icon">upload</span>
+              </button>
               <button onClick={takePhoto} className="shutter">
                 <span className="icon">camera</span>
               </button>
@@ -251,39 +243,6 @@ export default function App() {
                 </button>
               )}
             </div>
-            <ul className="modeSelector">
-              <li
-                key="custom"
-                onMouseEnter={e =>
-                  handleModeHover({key: 'custom', prompt: customPrompt}, e)
-                }
-                onMouseLeave={() => handleModeHover(null)}
-              >
-                <button
-                  className={c({active: activeMode === 'custom'})}
-                  onClick={() => {
-                    setMode('custom')
-                    setShowCustomPrompt(true)
-                  }}
-                >
-                  <span>✏️</span> <p>Custom</p>
-                </button>
-              </li>
-              {Object.entries(modes).map(([key, {name, emoji, prompt}]) => (
-                <li
-                  key={key}
-                  onMouseEnter={e => handleModeHover({key, prompt}, e)}
-                  onMouseLeave={() => handleModeHover(null)}
-                >
-                  <button
-                    onClick={() => setMode(key)}
-                    className={c({active: key === activeMode})}
-                  >
-                    <span>{emoji}</span> <p>{name}</p>
-                  </button>
-                </li>
-              ))}
-            </ul>
           </div>
         )}
 
@@ -316,6 +275,35 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {videoActive && (
+        <>
+          <div className="prompt-container">
+            <textarea
+              placeholder="Enter your prompt here..."
+              value={customPrompt}
+              onChange={e => setCustomPrompt(e.target.value)}
+              aria-label="Prompt for image generation"
+            />
+          </div>
+          {promptHistory.length > 0 && (
+            <div className="prompt-history">
+              <ul>
+                {promptHistory.map(item => (
+                  <li key={item.id}>
+                    <button
+                      className="prompt-chip"
+                      onClick={() => setCustomPrompt(item.prompt)}
+                    >
+                      {item.title}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
+      )}
 
       <div className="results">
         <ul>
@@ -373,27 +361,6 @@ export default function App() {
           </button>
         )}
       </div>
-
-      {hoveredMode && (
-        <div
-          className={c('tooltip', {isFirst: hoveredMode.key === 'custom'})}
-          role="tooltip"
-          style={{
-            top: tooltipPosition.top,
-            left: tooltipPosition.left,
-            transform: 'translateX(-50%)'
-          }}
-        >
-          {hoveredMode.key === 'custom' && !hoveredMode.prompt.length ? (
-            <p>Click to set a custom prompt</p>
-          ) : (
-            <>
-              <p>"{hoveredMode.prompt}"</p>
-              <h4>Prompt</h4>
-            </>
-          )}
-        </div>
-      )}
     </main>
   )
 }
