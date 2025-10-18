@@ -40,11 +40,13 @@ textarea {
   resize: none;
   -webkit-user-select: text;
   user-select: text;
+  text-align: right;
 }
 input::placeholder,
 textarea::placeholder {
   -webkit-user-select: none;
   user-select: none;
+  text-align: right;
 }
 select {
   appearance: none;
@@ -307,9 +309,9 @@ main {
     width: 90%;
   }
   .focusedPhoto .circleBtn {
-    left: 0;
-    right: unset;
-    translate: -50% -50%;
+    left: unset;
+    right: 0;
+    translate: 50% -50%;
   }
 }
 .focusedPhoto img {
@@ -320,9 +322,9 @@ main {
 }
 .circleBtn {
   position: absolute;
-  translate: 50% -50%;
+  translate: -50% -50%;
   top: 0;
-  right: 0;
+  left: 0;
   background: #000000b3;
   z-index: 1;
   font-size: 23px;
@@ -335,7 +337,7 @@ main {
 }
 .deleteBtn {
   scale: 0;
-  translate: 25% -25%;
+  translate: -25% -25%;
 }
 .results {
   display: flex;
@@ -368,7 +370,7 @@ main {
 .results li .emoji {
   position: absolute;
   bottom: 5px;
-  right: 5px;
+  left: 5px;
   z-index: 1;
   font-size: 24px;
 }
@@ -472,7 +474,7 @@ main {
 }
 .makeGif {
   position: sticky;
-  right: 15px;
+  left: 15px;
   align-self: center;
   background: #e64a19;
   border: 2px solid #fff;
@@ -482,12 +484,12 @@ main {
   padding: 10px 20px;
   border-radius: 5px;
   white-space: nowrap;
-  margin-left: auto;
+  margin-right: auto;
   z-index: 99;
 }
 @media (max-width: 768px) {
   .makeGif {
-    right: 0;
+    left: 0;
   }
 }
 @keyframes shimmer {

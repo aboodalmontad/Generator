@@ -22,7 +22,7 @@ export default createSelectorFunctions(
         promptHistory: []
       })),
       {
-        name: 'gembooth-prompt-history',
+        name: 'fotographer-prompt-history',
         storage: indexedDBStorage,
         partialize: state => ({promptHistory: state.promptHistory})
       }

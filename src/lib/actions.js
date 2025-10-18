@@ -36,7 +36,7 @@ export const snapPhoto = async b64 => {
     try {
       const title = await generateText({
         model: textModel,
-        prompt: `Generate a very short, two or three-word title for the following prompt. Return only the title and nothing else. Prompt: "${customPrompt}"`
+        prompt: `أنشئ عنواناً قصيراً جداً من كلمتين أو ثلاث للطلب التالي. أرجع العنوان فقط ولا شيء آخر. الطلب: "${customPrompt}"`
       })
       if (title) {
         set(state => {

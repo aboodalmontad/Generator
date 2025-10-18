@@ -4,7 +4,7 @@
 */
 import { openDB } from 'idb';
 
-const dbPromise = openDB('gembooth-db', 1, {
+const dbPromise = openDB('fotographer-db', 1, {
   upgrade(db) {
     db.createObjectStore('keyval');
   },

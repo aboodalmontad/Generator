@@ -145,7 +145,7 @@ export default function App() {
   const downloadImage = () => {
     const a = document.createElement('a')
     a.href = gifUrl || imageData.outputs[focusedId]
-    a.download = `gembooth.${gifUrl ? 'gif' : 'jpg'}`
+    a.download = `fotographer.${gifUrl ? 'gif' : 'jpg'}`
     a.click()
   }
 
@@ -157,13 +157,13 @@ export default function App() {
       const response = await fetch(imageUrl)
       const blob = await response.blob()
       const extension = gifUrl ? 'gif' : 'jpg'
-      const file = new File([blob], `gembooth-image.${extension}`, {
+      const file = new File([blob], `fotographer-image.${extension}`, {
         type: blob.type
       })
 
       await navigator.share({
-        title: 'Made with GemBooth!',
-        text: 'Check out this photo I made using Gemini and GemBooth.',
+        title: 'صنعت بواسطة فوتوغرفر!',
+        text: 'شوف هالصورة اللي عملتها باستخدام Gemini و فوتوغرفر.',
         files: [file]
       })
     } catch (err) {
@@ -200,21 +200,21 @@ export default function App() {
         {didJustSnap && <div className="flash" />}
         {!videoActive && (
           <div className="startButton">
-            <h1>📸 GemBooth</h1>
+            <h1>📸 فوتوغرفر</h1>
             <p>
               {didInitVideo
-                ? 'One sec…'
-                : 'Start by using your webcam or uploading a photo.'}
+                ? 'لحظة...'
+                : 'ابدأ باستخدام الكاميرا أو حمّل صورة.'}
             </p>
             <div className="start-actions">
               <button className="button" onClick={() => startVideo(facingMode)}>
-                <span className="icon">videocam</span> Use Webcam
+                <span className="icon">videocam</span> استخدم الكاميرا
               </button>
               <button
                 className="button"
                 onClick={() => fileInputRef.current.click()}
               >
-                <span className="icon">upload</span> Upload Photo
+                <span className="icon">upload</span> تحميل صورة
               </button>
             </div>
           </div>
@@ -225,7 +225,7 @@ export default function App() {
             <div className="shutter-controls">
               <button
                 className="switch-camera-button upload-button"
-                aria-label="Upload photo"
+                aria-label="تحميل صورة"
                 onClick={() => fileInputRef.current.click()}
               >
                 <span className="icon">upload</span>
@@ -237,7 +237,7 @@ export default function App() {
                 <button
                   onClick={switchCamera}
                   className="switch-camera-button"
-                  aria-label="Switch camera"
+                  aria-label="تبديل الكاميرا"
                 >
                   <span className="icon">flip_camera_ios</span>
                 </button>
@@ -264,11 +264,11 @@ export default function App() {
             />
             <div className="focusedPhoto-actions">
               <button className="button" onClick={downloadImage}>
-                <span className="icon">download</span> Download
+                <span className="icon">download</span> تنزيل
               </button>
               {canShare && (
                 <button className="button share-button" onClick={shareImage}>
-                  <span className="icon">share</span> Share
+                  <span className="icon">share</span> مشاركة
                 </button>
               )}
             </div>
@@ -280,10 +280,10 @@ export default function App() {
         <>
           <div className="prompt-container">
             <textarea
-              placeholder="Enter your prompt here..."
+              placeholder="اكتب طلبك هنا..."
               value={customPrompt}
               onChange={e => setCustomPrompt(e.target.value)}
-              aria-label="Prompt for image generation"
+              aria-label="طلب توليد الصورة"
             />
           </div>
           {promptHistory.length > 0 && (
@@ -345,9 +345,9 @@ export default function App() {
             : videoActive && (
                 <li className="empty" key="empty">
                   <p>
-                    👉 <span className="icon">camera</span>
+                    <span className="icon">camera</span> 👈
                   </p>
-                  Snap a photo to get started.
+                  صوّر صورة لتبدأ.
                 </li>
               )}
         </ul>
@@ -357,7 +357,7 @@ export default function App() {
             onClick={makeGif}
             disabled={gifInProgress}
           >
-            {gifInProgress ? 'One sec…' : 'Make GIF!'}
+            {gifInProgress ? 'لحظة...' : 'اصنع صورة متحركة!'}
           </button>
         )}
       </div>
