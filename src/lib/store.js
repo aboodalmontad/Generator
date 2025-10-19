@@ -12,17 +12,13 @@ export default create(
   persist(
     immer(() => ({
       didInit: false,
-      photos: [],
       customPrompt: '',
       promptHistory: []
     })),
     {
-      name: 'fotographer-store',
+      name: 'smart-camera-store',
       storage: indexedDBStorage,
       partialize: state => ({
-        photos: state.photos
-          .filter(p => !p.isBusy)
-          .map(({id, mode}) => ({id, mode})),
         promptHistory: state.promptHistory,
         customPrompt: state.customPrompt
       })

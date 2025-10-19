@@ -1,5 +1,5 @@
 {
-  "name": "كاميرا",
+  "name": "Smart Camera",
   "description": "جرّب تأثيرات الصور الاحترافية باستخدام كاميرا الويب.",
   "requestFramePermissions": [
     "camera"

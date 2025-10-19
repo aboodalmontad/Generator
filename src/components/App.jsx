@@ -6,7 +6,6 @@ import {useRef, useState, useEffect} from 'react'
 import c from 'clsx'
 import {
   snapPhoto,
-  deletePhoto,
   setCustomPrompt,
   initApp
 } from '../lib/actions'
@@ -17,31 +16,36 @@ const canvas = document.createElement('canvas')
 const ctx = canvas.getContext('2d')
 
 export default function App() {
-  const photos = useStore(state => state.photos)
   const customPrompt = useStore(state => state.customPrompt)
   const promptHistory = useStore(state => state.promptHistory)
-  const [videoActive, setVideoActive] = useState(false)
-  const [didInitVideo, setDidInitVideo] = useState(false)
+  const [appMode, setAppMode] = useState('idle') // idle, camera, uploaded
+  const [uploadedImage, setUploadedImage] = useState(null)
   const [focusedId, setFocusedId] = useState(null)
-  const [comparisonValue, setComparisonValue] = useState(50)
+  const [activeTab, setActiveTab] = useState('generated')
   const [didJustSnap, setDidJustSnap] = useState(false)
   const [facingMode, setFacingMode] = useState('user')
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
   const videoRef = useRef(null)
   const fileInputRef = useRef(null)
+  const clickTimeout = useRef(null)
 
   useEffect(() => {
     initApp()
   }, [])
 
-  const isShutterDisabled = !customPrompt.trim()
+  useEffect(() => {
+    if (focusedId) {
+      setActiveTab('generated')
+    }
+  }, [focusedId])
 
-  const startVideo = async mode => {
+  const isShutterDisabled = !customPrompt.trim() || isGenerating
+
+  const startCamera = async mode => {
     if (videoRef.current?.srcObject) {
       videoRef.current.srcObject.getTracks().forEach(track => track.stop())
     }
-
-    setDidInitVideo(true)
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -53,7 +57,8 @@ export default function App() {
         audio: false
       })
       videoRef.current.srcObject = stream
-      setVideoActive(true)
+      setAppMode('camera')
+      setUploadedImage(null)
 
       if (!hasMultipleCameras) {
         const devices = await navigator.mediaDevices.enumerateDevices()
@@ -68,57 +73,14 @@ export default function App() {
       canvas.height = squareSize
     } catch (err) {
       console.error('Failed to start video', err)
-      setVideoActive(false)
-      setDidInitVideo(false)
+      setAppMode('idle')
     }
   }
 
   const switchCamera = () => {
     const newMode = facingMode === 'user' ? 'environment' : 'user'
     setFacingMode(newMode)
-    startVideo(newMode)
-  }
-
-  const takePhoto = () => {
-    const video = videoRef.current
-    const {videoWidth, videoHeight} = video
-    const squareSize = canvas.width
-    const sourceSize = Math.min(videoWidth, videoHeight)
-    const sourceX = (videoWidth - sourceSize) / 2
-    const sourceY = (videoHeight - sourceSize) / 2
-
-    ctx.clearRect(0, 0, squareSize, squareSize)
-    ctx.setTransform(1, 0, 0, 1, 0, 0)
-
-    if (facingMode === 'user') {
-      ctx.scale(-1, 1)
-      ctx.drawImage(
-        video,
-        sourceX,
-        sourceY,
-        sourceSize,
-        sourceSize,
-        -squareSize,
-        0,
-        squareSize,
-        squareSize
-      )
-    } else {
-      ctx.drawImage(
-        video,
-        sourceX,
-        sourceY,
-        sourceSize,
-        sourceSize,
-        0,
-        0,
-        squareSize,
-        squareSize
-      )
-    }
-    snapPhoto(canvas.toDataURL('image/jpeg'))
-    setDidJustSnap(true)
-    setTimeout(() => setDidJustSnap(false), 1000)
+    startCamera(newMode)
   }
 
   const handleFileSelect = e => {
@@ -127,17 +89,134 @@ export default function App() {
 
     const reader = new FileReader()
     reader.onload = e => {
-      snapPhoto(e.target.result)
+      if (videoRef.current?.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach(track => track.stop())
+      }
+      setUploadedImage(e.target.result)
+      setAppMode('uploaded')
     }
     reader.readAsDataURL(file)
     e.target.value = ''
   }
 
+  const handleGenerate = async () => {
+    if (isShutterDisabled) return
+    setIsGenerating(true)
+    try {
+      let id
+      let b64
+
+      if (appMode === 'camera') {
+        const video = videoRef.current
+        const {videoWidth, videoHeight} = video
+        const squareSize = canvas.width
+        const sourceSize = Math.min(videoWidth, videoHeight)
+        const sourceX = (videoWidth - sourceSize) / 2
+        const sourceY = (videoHeight - sourceSize) / 2
+
+        ctx.clearRect(0, 0, squareSize, squareSize)
+        ctx.setTransform(1, 0, 0, 1, 0, 0)
+
+        if (facingMode === 'user') {
+          ctx.scale(-1, 1)
+          ctx.drawImage(
+            video,
+            sourceX,
+            sourceY,
+            sourceSize,
+            sourceSize,
+            -squareSize,
+            0,
+            squareSize,
+            squareSize
+          )
+        } else {
+          ctx.drawImage(
+            video,
+            sourceX,
+            sourceY,
+            sourceSize,
+            sourceSize,
+            0,
+            0,
+            squareSize,
+            squareSize
+          )
+        }
+        b64 = canvas.toDataURL('image/jpeg')
+        setDidJustSnap(true)
+        setTimeout(() => setDidJustSnap(false), 1000)
+      } else if (appMode === 'uploaded' && uploadedImage) {
+        b64 = uploadedImage
+      }
+
+      if (b64) {
+        id = await snapPhoto(b64)
+      }
+
+      if (id) {
+        setFocusedId(id)
+        if (appMode === 'uploaded') {
+          setUploadedImage(null)
+          setAppMode('idle')
+        }
+      }
+    } catch (e) {
+      alert('حدث خطأ أثناء توليد الصورة.')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   const downloadImage = (href, name) => {
     const a = document.createElement('a')
     a.href = href
-    a.download = `fotographer-${name}.jpg`
+    a.download = `smart-camera-${name}.jpg`
     a.click()
+  }
+
+  const handleImageInteraction = e => {
+    if (e.detail === 1) {
+      clickTimeout.current = setTimeout(() => {
+        setActiveTab(prev => (prev === 'generated' ? 'original' : 'generated'))
+      }, 200)
+    } else if (e.detail === 2) {
+      clearTimeout(clickTimeout.current)
+      const imageUrl =
+        activeTab === 'original'
+          ? imageData.inputs[focusedId]
+          : imageData.outputs[focusedId]
+      const imageName = activeTab === 'original' ? 'original' : 'generated'
+      downloadImage(imageUrl, imageName)
+    }
+  }
+
+  const handleShare = async () => {
+    const generatedImageUrl = imageData.outputs[focusedId]
+    if (!navigator.share || !generatedImageUrl) {
+      return
+    }
+
+    try {
+      const response = await fetch(generatedImageUrl)
+      const blob = await response.blob()
+      const file = new File([blob], 'smart-camera-generated.jpg', {
+        type: 'image/jpeg'
+      })
+
+      if (navigator.canShare && navigator.canShare({files: [file]})) {
+        await navigator.share({
+          title: 'Image generated by Smart Camera',
+          text: 'Check out this image I edited!',
+          files: [file]
+        })
+      } else {
+        alert('لا يمكن مشاركة هذا النوع من الملفات.')
+      }
+    } catch (error) {
+      console.error('خطأ أثناء المشاركة:', error)
+      alert('حدث خطأ أثناء محاولة المشاركة.')
+    }
   }
 
   return (
@@ -155,25 +234,47 @@ export default function App() {
           setFocusedId(null)
         }}
       >
+        {appMode === 'uploaded' && uploadedImage && (
+          <img
+            src={uploadedImage}
+            alt="معاينة الصورة المرفوعة"
+            className="video-preview"
+          />
+        )}
         <video
           ref={videoRef}
           muted
           autoPlay
           playsInline
           disablePictureInPicture="true"
-          style={{transform: facingMode === 'user' ? 'rotateY(180deg)' : 'none'}}
+          style={{
+            transform: facingMode === 'user' ? 'rotateY(180deg)' : 'none',
+            display: appMode === 'camera' ? 'block' : 'none'
+          }}
         />
         {didJustSnap && <div className="flash" />}
-        {!videoActive && (
-          <div className="startButton">
-            <h1>📸 فوتوغرفر</h1>
-            <p>
-              {didInitVideo
-                ? 'لحظة...'
-                : 'ابدأ باستخدام الكاميرا أو حمّل صورة.'}
-            </p>
+        {appMode === 'idle' && (
+          <div className="start-screen">
+            <div className="start-content">
+              <h1 className="start-title">
+                <span className="icon">auto_awesome</span>
+                Smart Camera
+              </h1>
+              <p className="start-description">
+                حوّل صورك العادية إلى أعمال فنية مذهلة بلمسة زر.
+              </p>
+            </div>
+            <div className="start-visuals">
+              <div className="photo-showcase">
+                <div className="photo-card original-photo"></div>
+                <div className="photo-card generated-photo"></div>
+              </div>
+            </div>
             <div className="start-actions">
-              <button className="button" onClick={() => startVideo(facingMode)}>
+              <button
+                className="button"
+                onClick={() => startCamera(facingMode)}
+              >
                 <span className="icon">videocam</span> استخدم الكاميرا
               </button>
               <button
@@ -191,63 +292,35 @@ export default function App() {
             <button className="circleBtn" onClick={() => setFocusedId(null)}>
               <span className="icon">close</span>
             </button>
+            {navigator.share && (
+              <button
+                className="circleBtn shareBtn"
+                onClick={handleShare}
+                title="مشاركة"
+              >
+                <span className="icon">share</span>
+              </button>
+            )}
             <div className="focusedPhoto-content">
-              <div className="comparison-view">
-                <img
-                  className="comparison-original"
-                  src={imageData.inputs[focusedId]}
-                  alt="الصورة الأصلية"
-                  draggable={false}
-                />
-                <img
-                  className="comparison-generated"
-                  src={imageData.outputs[focusedId]}
-                  alt="الصورة المولدة"
-                  draggable={false}
-                  style={{
-                    clipPath: `polygon(0 0, ${comparisonValue}% 0, ${comparisonValue}% 100%, 0 100%)`
-                  }}
-                />
-                <div
-                  className="comparison-handle"
-                  style={{left: `${comparisonValue}%`}}
-                >
-                  <div className="comparison-handle-grip">
-                    <span className="icon">unfold_more</span>
-                  </div>
-                </div>
-                <input
-                  type="range"
-                  className="comparison-slider"
-                  min="0"
-                  max="100"
-                  value={comparisonValue}
-                  onChange={e => setComparisonValue(e.target.value)}
-                  aria-label="مقارنة الصور"
-                />
-              </div>
-              <div className="focusedPhoto-actions">
-                <div className="action-group">
-                  <p>الأصلية</p>
-                  <button
-                    className="button"
-                    onClick={() =>
-                      downloadImage(imageData.inputs[focusedId], 'original')
+              <div className="image-display-container">
+                <div className="tab-content">
+                  <span className="image-badge">
+                    {activeTab === 'generated' ? 'المولدة' : 'الأصلية'}
+                  </span>
+                  <img
+                    src={
+                      activeTab === 'original'
+                        ? imageData.inputs[focusedId]
+                        : imageData.outputs[focusedId]
                     }
-                  >
-                    <span className="icon">download</span> تنزيل
-                  </button>
-                </div>
-                <div className="action-group">
-                  <p>المولدة</p>
-                  <button
-                    className="button"
-                    onClick={() =>
-                      downloadImage(imageData.outputs[focusedId], 'generated')
+                    alt={
+                      activeTab === 'original'
+                        ? 'الصورة الأصلية'
+                        : 'الصورة المولدة'
                     }
-                  >
-                    <span className="icon">download</span> تنزيل
-                  </button>
+                    draggable={false}
+                    onClick={handleImageInteraction}
+                  />
                 </div>
               </div>
             </div>
@@ -255,7 +328,7 @@ export default function App() {
         )}
       </div>
 
-      {videoActive && (
+      {appMode !== 'idle' && (
         <div className="controls-panel">
           <div className="shutter-controls">
             <button
@@ -266,13 +339,20 @@ export default function App() {
               <span className="icon">upload</span>
             </button>
             <button
-              onClick={takePhoto}
+              onClick={handleGenerate}
               className="shutter"
               disabled={isShutterDisabled}
+              aria-label={appMode === 'camera' ? 'التقاط صورة' : 'توليد صورة'}
             >
-              <span className="icon">camera</span>
+              <span className={c('icon', {'is-loading': isGenerating})}>
+                {isGenerating
+                  ? 'progress_activity'
+                  : appMode === 'camera'
+                    ? 'camera'
+                    : 'auto_fix'}
+              </span>
             </button>
-            {hasMultipleCameras && (
+            {appMode === 'camera' && hasMultipleCameras && (
               <button
                 onClick={switchCamera}
                 className="switch-camera-button"
@@ -310,51 +390,6 @@ export default function App() {
           )}
         </div>
       )}
-
-      <div className="results">
-        <ul>
-          {photos.length
-            ? photos.map(({id, mode, isBusy}) => (
-                <li className={c({isBusy})} key={id}>
-                  <button
-                    className="circleBtn deleteBtn"
-                    onClick={async () => {
-                      await deletePhoto(id)
-                      if (focusedId === id) {
-                        setFocusedId(null)
-                      }
-                    }}
-                  >
-                    <span className="icon">delete</span>
-                  </button>
-                  <button
-                    className="photo"
-                    onClick={() => {
-                      if (!isBusy) {
-                        setFocusedId(id)
-                      }
-                    }}
-                  >
-                    <img
-                      src={
-                        isBusy ? imageData.inputs[id] : imageData.outputs[id]
-                      }
-                      draggable={false}
-                    />
-                    <p className="emoji">✏️</p>
-                  </button>
-                </li>
-              ))
-            : videoActive && (
-                <li className="empty" key="empty">
-                  <p>
-                    <span className="icon">camera</span> 👈
-                  </p>
-                  صوّر صورة لتبدأ.
-                </li>
-              )}
-        </ul>
-      </div>
     </main>
   )
 }

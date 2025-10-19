@@ -4,7 +4,7 @@
 */
 import {openDB} from 'idb'
 
-const dbPromise = openDB('fotographer-db', 1, {
+const dbPromise = openDB('smart-camera-db', 1, {
   upgrade(db) {
     db.createObjectStore('keyval')
   }
@@ -22,7 +22,7 @@ export const indexedDBStorage = {
   }
 }
 
-const imageDbPromise = openDB('fotographer-images-db', 1, {
+const imageDbPromise = openDB('smart-camera-images-db', 1, {
   upgrade(db) {
     db.createObjectStore('images')
   }
