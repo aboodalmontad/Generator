@@ -9,13 +9,13 @@ const timeoutMs = 123_333
 const maxRetries = 5
 const baseDelay = 1_233
 
-let ai;
+let ai
 const getAi = () => {
   if (!ai) {
-    ai = new GoogleGenAI({apiKey: 'AIzaSyBAfB0TlJyFamN8flMZHNtqot2aeRq5avM'});
+    ai = new GoogleGenAI({apiKey: 'AIzaSyBAfB0TlJyFamN8flMZHNtqot2aeRq5avM'})
   }
-  return ai;
-};
+  return ai
+}
 
 const imageLimiter = pLimit(2)
 const textLimiter = pLimit(4)
@@ -27,34 +27,32 @@ const safetySettings = [
   'HARM_CATEGORY_HARASSMENT'
 ].map(category => ({category, threshold: 'BLOCK_NONE'}))
 
-const _generateImage = async ({model, prompt, inputFile}) => {
+const _generateImage = async ({model, prompt, inputFile, inputMimeType}) => {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('timeout')), timeoutMs)
       )
 
-      const modelPromise = getAi().models.generateContent(
-        {
-          model,
-          config: {responseModalities: [Modality.IMAGE]},
-          contents: {
-            parts: [
-              ...(inputFile
-                ? [
-                    {
-                      inlineData: {
-                        data: inputFile.split(',')[1],
-                        mimeType: 'image/jpeg'
-                      }
+      const modelPromise = getAi().models.generateContent({
+        model,
+        config: {responseModalities: [Modality.IMAGE]},
+        contents: {
+          parts: [
+            ...(inputFile
+              ? [
+                  {
+                    inlineData: {
+                      data: inputFile.split(',')[1],
+                      mimeType: inputMimeType || 'image/jpeg'
                     }
-                  ]
-                : []),
-              {text: prompt}
-            ]
-          }
+                  }
+                ]
+              : []),
+            {text: prompt}
+          ]
         }
-      )
+      })
 
       const response = await Promise.race([modelPromise, timeoutPromise])
 
@@ -97,15 +95,13 @@ const _generateText = async ({model, prompt}) => {
         setTimeout(() => reject(new Error('timeout')), timeoutMs)
       )
 
-      const modelPromise = getAi().models.generateContent(
-        {
-          model,
-          contents: prompt,
-          config: {
-            safetySettings
-          }
+      const modelPromise = getAi().models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          safetySettings
         }
-      )
+      })
 
       const response = await Promise.race([modelPromise, timeoutPromise])
 

@@ -19,7 +19,10 @@ export default function App() {
   const customPrompt = useStore(state => state.customPrompt)
   const promptHistory = useStore(state => state.promptHistory)
   const [appMode, setAppMode] = useState('idle') // idle, camera, uploaded
-  const [uploadedImage, setUploadedImage] = useState(null)
+  const [uploadedImage, setUploadedImage] = useState({
+    dataUrl: null,
+    mimeType: null
+  })
   const [focusedId, setFocusedId] = useState(null)
   const [activeTab, setActiveTab] = useState('generated')
   const [didJustSnap, setDidJustSnap] = useState(false)
@@ -59,7 +62,7 @@ export default function App() {
       })
       videoRef.current.srcObject = stream
       setAppMode('camera')
-      setUploadedImage(null)
+      setUploadedImage({dataUrl: null, mimeType: null})
 
       if (!hasMultipleCameras) {
         const devices = await navigator.mediaDevices.enumerateDevices()
@@ -93,7 +96,7 @@ export default function App() {
       if (videoRef.current?.srcObject) {
         videoRef.current.srcObject.getTracks().forEach(track => track.stop())
       }
-      setUploadedImage(e.target.result)
+      setUploadedImage({dataUrl: e.target.result, mimeType: file.type})
       setAppMode('uploaded')
     }
     reader.readAsDataURL(file)
@@ -107,6 +110,7 @@ export default function App() {
     try {
       let id
       let b64
+      let mimeType = 'image/jpeg' // Default for camera
 
       if (appMode === 'camera') {
         const video = videoRef.current
@@ -148,28 +152,30 @@ export default function App() {
         b64 = canvas.toDataURL('image/jpeg')
         setDidJustSnap(true)
         setTimeout(() => setDidJustSnap(false), 1000)
-      } else if (appMode === 'uploaded' && uploadedImage) {
-        b64 = uploadedImage
+      } else if (appMode === 'uploaded' && uploadedImage.dataUrl) {
+        b64 = uploadedImage.dataUrl
+        mimeType = uploadedImage.mimeType
       }
 
       if (b64) {
-        id = await snapPhoto(b64)
+        id = await snapPhoto(b64, mimeType)
       }
 
       if (id) {
         setFocusedId(id)
         if (appMode === 'uploaded') {
-          setUploadedImage(null)
+          setUploadedImage({dataUrl: null, mimeType: null})
           setAppMode('idle')
         }
       }
     } catch (e) {
-      console.error('Error generating image:', e);
-      let userMessage = 'حدث خطأ أثناء توليد الصورة.';
+      console.error('Error generating image:', e)
+      let userMessage = 'حدث خطأ أثناء توليد الصورة.'
       if (e && e.message && /API key|PERMISSION_DENIED/i.test(e.message)) {
-        userMessage = 'حدث خطأ في المصادقة. يرجى التأكد من صحة مفتاح API الخاص بك وأنه تم تكوينه بشكل صحيح لبيئة النشر.';
+        userMessage =
+          'حدث خطأ في المصادقة. يرجى التأكد من صحة مفتاح API الخاص بك وأنه تم تكوينه بشكل صحيح لبيئة النشر.'
       }
-      setError(userMessage);
+      setError(userMessage)
     } finally {
       setIsGenerating(false)
     }
@@ -259,9 +265,9 @@ export default function App() {
             <span className="icon">flip_camera_ios</span>
           </button>
         )}
-        {appMode === 'uploaded' && uploadedImage && (
+        {appMode === 'uploaded' && uploadedImage.dataUrl && (
           <img
-            src={uploadedImage}
+            src={uploadedImage.dataUrl}
             alt="معاينة الصورة المرفوعة"
             className="video-preview"
           />
@@ -281,9 +287,7 @@ export default function App() {
         {appMode === 'idle' && (
           <div className="start-screen">
             <div className="start-content">
-              <h1 className="start-title">
-                Smart Camera
-              </h1>
+              <h1 className="start-title">Smart Camera</h1>
               <p className="start-description">
                 حوّل صورك العادية إلى أعمال فنية مذهلة بلمسة زر.
               </p>

@@ -20,7 +20,7 @@ export const initApp = async () => {
   })
 }
 
-export const snapPhoto = async b64 => {
+export const snapPhoto = async (b64, mimeType = 'image/jpeg') => {
   const id = crypto.randomUUID()
   const {customPrompt, promptHistory} = get()
   const promptToUse = customPrompt
@@ -57,7 +57,8 @@ export const snapPhoto = async b64 => {
     const result = await generateImage({
       model: imageModel,
       prompt: promptToUse,
-      inputFile: b64
+      inputFile: b64,
+      inputMimeType: mimeType
     })
 
     imageData.outputs[id] = result
