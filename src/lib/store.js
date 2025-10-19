@@ -17,9 +17,15 @@ export default create(
       promptHistory: []
     })),
     {
-      name: 'fotographer-prompt-history',
+      name: 'fotographer-store',
       storage: indexedDBStorage,
-      partialize: state => ({promptHistory: state.promptHistory})
+      partialize: state => ({
+        photos: state.photos
+          .filter(p => !p.isBusy)
+          .map(({id, mode}) => ({id, mode})),
+        promptHistory: state.promptHistory,
+        customPrompt: state.customPrompt
+      })
     }
   )
 )

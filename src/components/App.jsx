@@ -7,7 +7,8 @@ import c from 'clsx'
 import {
   snapPhoto,
   deletePhoto,
-  setCustomPrompt
+  setCustomPrompt,
+  initApp
 } from '../lib/actions'
 import useStore from '../lib/store'
 import imageData from '../lib/imageData'
@@ -28,6 +29,10 @@ export default function App() {
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false)
   const videoRef = useRef(null)
   const fileInputRef = useRef(null)
+
+  useEffect(() => {
+    initApp()
+  }, [])
 
   const isShutterDisabled = !customPrompt.trim()
 
@@ -313,8 +318,8 @@ export default function App() {
                 <li className={c({isBusy})} key={id}>
                   <button
                     className="circleBtn deleteBtn"
-                    onClick={() => {
-                      deletePhoto(id)
+                    onClick={async () => {
+                      await deletePhoto(id)
                       if (focusedId === id) {
                         setFocusedId(null)
                       }
