@@ -148,20 +148,14 @@ main {
     opacity: 0;
   }
 }
-.videoControls {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+.controls-panel {
+  padding: 20px;
+  background: #111;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
   align-items: center;
-  padding-bottom: 20px;
   gap: 20px;
-}
-.videoControls .icon {
-  font-size: 42px;
+  border-top: 1px solid #333;
 }
 .shutter-controls {
   display: flex;
@@ -173,9 +167,7 @@ main {
   order: -1;
 }
 .switch-camera-button {
-  background: #000000b3;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  background: #222;
   border-radius: 50%;
   padding: 10px;
   transition: all 0.2s;
@@ -192,6 +184,7 @@ main {
 }
 .switch-camera-button:hover {
   scale: 1.1;
+  background: #333;
 }
 .switch-camera-button:hover .icon {
   color: #fff;
@@ -199,54 +192,10 @@ main {
 .switch-camera-button:active {
   scale: 0.8;
 }
-.mode-selector {
-  width: 100%;
-  overflow-x: auto;
-  padding: 0 20px;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.mode-selector::-webkit-scrollbar {
-  display: none;
-}
-.mode-selector ul {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  list-style: none;
-  padding-bottom: 5px;
-}
-.mode-selector li button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 20px;
-  background: #00000080;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  border: 1px solid #ffffff33;
-  color: #eee;
-  font-size: 14px;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.mode-selector li.active button,
-.mode-selector li button:hover {
-  background: #ffffff_e6;
-  color: #111;
-  border-color: transparent;
-}
-.mode-selector li .emoji {
-  font-size: 18px;
-}
 .prompt-container {
   display: flex;
-  background: #111;
   width: 100%;
-  padding: 15px 15px 0;
-  border-top: 1px solid #333;
+  padding: 0;
 }
 .prompt-container textarea {
   flex: 1;
@@ -261,9 +210,8 @@ main {
   color: #888;
 }
 .prompt-history {
-  background: #111;
-  padding: 15px;
-  padding-top: 10px;
+  padding: 0;
+  width: 100%;
   overflow-x: auto;
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
@@ -312,9 +260,7 @@ main {
   margin-top: 20px;
 }
 .shutter {
-  background: #000000b3;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  background: #fff;
   border-radius: 50%;
   padding: 10px;
   filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.5));
@@ -322,18 +268,24 @@ main {
 }
 .shutter .icon {
   font-size: 42px;
-  color: #ddd;
+  color: #111;
   transition: color 0.2s;
 }
 .shutter:hover {
   scale: 1.1;
 }
 .shutter:hover .icon {
-  color: #fff;
+  color: #000;
 }
 .shutter:active {
   scale: 0.8;
   rotate: 10deg;
+}
+.shutter[disabled] {
+  background: #555;
+}
+.shutter[disabled] .icon {
+  color: #888;
 }
 .focusedPhoto {
   position: absolute;

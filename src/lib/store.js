@@ -13,7 +13,6 @@ export default create(
     immer(() => ({
       didInit: false,
       photos: [],
-      activeMode: 'custom',
       customPrompt: '',
       promptHistory: []
     })),

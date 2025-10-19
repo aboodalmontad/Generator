@@ -7,12 +7,10 @@ import c from 'clsx'
 import {
   snapPhoto,
   deletePhoto,
-  setCustomPrompt,
-  setActiveMode
+  setCustomPrompt
 } from '../lib/actions'
 import useStore from '../lib/store'
 import imageData from '../lib/imageData'
-import modes from '../lib/modes'
 
 const canvas = document.createElement('canvas')
 const ctx = canvas.getContext('2d')
@@ -20,7 +18,6 @@ const ctx = canvas.getContext('2d')
 export default function App() {
   const photos = useStore(state => state.photos)
   const customPrompt = useStore(state => state.customPrompt)
-  const activeMode = useStore(state => state.activeMode)
   const promptHistory = useStore(state => state.promptHistory)
   const [videoActive, setVideoActive] = useState(false)
   const [didInitVideo, setDidInitVideo] = useState(false)
@@ -32,7 +29,7 @@ export default function App() {
   const videoRef = useRef(null)
   const fileInputRef = useRef(null)
 
-  const isShutterDisabled = activeMode === 'custom' && !customPrompt.trim()
+  const isShutterDisabled = !customPrompt.trim()
 
   const startVideo = async mode => {
     if (videoRef.current?.srcObject) {
@@ -184,48 +181,6 @@ export default function App() {
           </div>
         )}
 
-        {videoActive && (
-          <div className="videoControls">
-            <div className="mode-selector">
-              <ul>
-                {Object.entries(modes).map(([id, {title, emoji}]) => (
-                  <li key={id} className={c({active: activeMode === id})}>
-                    <button onClick={() => setActiveMode(id)}>
-                      <span className="emoji">{emoji}</span>
-                      <span>{title}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="shutter-controls">
-              <button
-                className="switch-camera-button upload-button"
-                aria-label="تحميل صورة"
-                onClick={() => fileInputRef.current.click()}
-              >
-                <span className="icon">upload</span>
-              </button>
-              <button
-                onClick={takePhoto}
-                className="shutter"
-                disabled={isShutterDisabled}
-              >
-                <span className="icon">camera</span>
-              </button>
-              {hasMultipleCameras && (
-                <button
-                  onClick={switchCamera}
-                  className="switch-camera-button"
-                  aria-label="تبديل الكاميرا"
-                >
-                  <span className="icon">flip_camera_ios</span>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
         {focusedId && (
           <div className="focusedPhoto" onClick={e => e.stopPropagation()}>
             <button className="circleBtn" onClick={() => setFocusedId(null)}>
@@ -296,17 +251,40 @@ export default function App() {
       </div>
 
       {videoActive && (
-        <>
-          {activeMode === 'custom' && (
-            <div className="prompt-container">
-              <textarea
-                placeholder="اكتب طلبك هنا..."
-                value={customPrompt}
-                onChange={e => setCustomPrompt(e.target.value)}
-                aria-label="طلب توليد الصورة"
-              />
-            </div>
-          )}
+        <div className="controls-panel">
+          <div className="shutter-controls">
+            <button
+              className="switch-camera-button upload-button"
+              aria-label="تحميل صورة"
+              onClick={() => fileInputRef.current.click()}
+            >
+              <span className="icon">upload</span>
+            </button>
+            <button
+              onClick={takePhoto}
+              className="shutter"
+              disabled={isShutterDisabled}
+            >
+              <span className="icon">camera</span>
+            </button>
+            {hasMultipleCameras && (
+              <button
+                onClick={switchCamera}
+                className="switch-camera-button"
+                aria-label="تبديل الكاميرا"
+              >
+                <span className="icon">flip_camera_ios</span>
+              </button>
+            )}
+          </div>
+          <div className="prompt-container">
+            <textarea
+              placeholder="اكتب طلبك هنا..."
+              value={customPrompt}
+              onChange={e => setCustomPrompt(e.target.value)}
+              aria-label="طلب توليد الصورة"
+            />
+          </div>
           {promptHistory.length > 0 && (
             <div className="prompt-history">
               <ul>
@@ -316,7 +294,6 @@ export default function App() {
                       className="prompt-chip"
                       onClick={() => {
                         setCustomPrompt(item.prompt)
-                        setActiveMode('custom')
                       }}
                     >
                       {item.title}
@@ -326,7 +303,7 @@ export default function App() {
               </ul>
             </div>
           )}
-        </>
+        </div>
       )}
 
       <div className="results">
@@ -359,7 +336,7 @@ export default function App() {
                       }
                       draggable={false}
                     />
-                    <p className="emoji">{modes[mode]?.emoji || '✏️'}</p>
+                    <p className="emoji">✏️</p>
                   </button>
                 </li>
               ))
