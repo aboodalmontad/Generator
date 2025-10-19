@@ -27,6 +27,7 @@ export default function App() {
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState(null)
+  const [isConfigured, setIsConfigured] = useState(true);
   const videoRef = useRef(null)
   const fileInputRef = useRef(null)
   const clickTimeout = useRef(null)
@@ -34,7 +35,7 @@ export default function App() {
   useEffect(() => {
     initApp()
     if (!process.env.API_KEY) {
-      setError('مفتاح API غير موجود. يرجى التأكد من تكوين متغير البيئة API_KEY.');
+      setIsConfigured(false);
     }
   }, [])
 
@@ -227,6 +228,31 @@ export default function App() {
       console.error('خطأ أثناء المشاركة:', error)
       alert('حدث خطأ أثناء محاولة المشاركة.')
     }
+  }
+
+  if (!isConfigured) {
+    return (
+      <main>
+        <div className="config-error-screen">
+          <span className="icon">key_off</span>
+          <h1>مفتاح الواجهة البرمجية (API Key) مفقود</h1>
+          <p>
+            لتشغيل هذا التطبيق، تحتاج إلى مفتاح API من Google AI Studio. يرجى
+            إنشاء مفتاح وإضافته كمتغير بيئة باسم <code>API_KEY</code> في منصة
+            النشر الخاصة بك.
+          </p>
+          <a
+            href="https://aistudio.google.com/app/apikey"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="button"
+          >
+            <span className="icon">open_in_new</span>
+            الحصول على مفتاح API
+          </a>
+        </div>
+      </main>
+    );
   }
 
   return (
