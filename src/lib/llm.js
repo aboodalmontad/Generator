@@ -12,7 +12,7 @@ const baseDelay = 1_233
 let ai;
 const getAi = () => {
   if (!ai) {
-    ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+    ai = new GoogleGenAI({apiKey: 'AIzaSyBAfB0TlJyFamN8flMZHNtqot2aeRq5avM'});
   }
   return ai;
 };
