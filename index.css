@@ -115,6 +115,45 @@ main {
   animation: gradientBG 20s ease infinite;
 }
 
+.error-banner {
+  background: #d32f2f;
+  color: #fff;
+  padding: 10px 40px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.error-banner .icon {
+  font-size: 20px;
+}
+
+.close-error-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 5px;
+}
+
+.close-error-btn .icon {
+  font-size: 20px;
+}
+
 @keyframes gradientBG {
   0% {
     background-position: 0% 50%;

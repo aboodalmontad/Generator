@@ -26,12 +26,16 @@ export default function App() {
   const [facingMode, setFacingMode] = useState('user')
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [error, setError] = useState(null)
   const videoRef = useRef(null)
   const fileInputRef = useRef(null)
   const clickTimeout = useRef(null)
 
   useEffect(() => {
     initApp()
+    if (!process.env.API_KEY) {
+      setError('مفتاح API غير موجود. يرجى التأكد من تكوين متغير البيئة API_KEY.');
+    }
   }, [])
 
   useEffect(() => {
@@ -101,6 +105,7 @@ export default function App() {
 
   const handleGenerate = async () => {
     if (isShutterDisabled) return
+    setError(null)
     setIsGenerating(true)
     try {
       let id
@@ -164,10 +169,10 @@ export default function App() {
     } catch (e) {
       console.error('Error generating image:', e);
       let userMessage = 'حدث خطأ أثناء توليد الصورة.';
-      if (e && e.message && /API key/i.test(e.message)) {
+      if (e && e.message && /API key|PERMISSION_DENIED/i.test(e.message)) {
         userMessage = 'حدث خطأ في المصادقة. يرجى التأكد من صحة مفتاح API الخاص بك وأنه تم تكوينه بشكل صحيح لبيئة النشر.';
       }
-      alert(userMessage);
+      setError(userMessage);
     } finally {
       setIsGenerating(false)
     }
@@ -226,6 +231,15 @@ export default function App() {
 
   return (
     <main>
+      {error && (
+        <div className="error-banner">
+          <span className="icon">warning</span>
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="close-error-btn">
+            <span className="icon">close</span>
+          </button>
+        </div>
+      )}
       <input
         type="file"
         ref={fileInputRef}
