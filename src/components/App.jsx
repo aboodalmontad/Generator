@@ -162,7 +162,12 @@ export default function App() {
         }
       }
     } catch (e) {
-      alert('حدث خطأ أثناء توليد الصورة.')
+      console.error('Error generating image:', e);
+      let userMessage = 'حدث خطأ أثناء توليد الصورة.';
+      if (e && e.message && /API key/i.test(e.message)) {
+        userMessage = 'حدث خطأ في المصادقة. يرجى التأكد من صحة مفتاح API الخاص بك وأنه تم تكوينه بشكل صحيح لبيئة النشر.';
+      }
+      alert(userMessage);
     } finally {
       setIsGenerating(false)
     }
@@ -234,6 +239,15 @@ export default function App() {
           setFocusedId(null)
         }}
       >
+        {appMode === 'camera' && hasMultipleCameras && (
+          <button
+            onClick={switchCamera}
+            className="switch-camera-overlay"
+            aria-label="تبديل الكاميرا"
+          >
+            <span className="icon">flip_camera_ios</span>
+          </button>
+        )}
         {appMode === 'uploaded' && uploadedImage && (
           <img
             src={uploadedImage}
@@ -257,7 +271,6 @@ export default function App() {
           <div className="start-screen">
             <div className="start-content">
               <h1 className="start-title">
-                <span className="icon">auto_awesome</span>
                 Smart Camera
               </h1>
               <p className="start-description">
@@ -352,15 +365,6 @@ export default function App() {
                     : 'auto_fix'}
               </span>
             </button>
-            {appMode === 'camera' && hasMultipleCameras && (
-              <button
-                onClick={switchCamera}
-                className="switch-camera-button"
-                aria-label="تبديل الكاميرا"
-              >
-                <span className="icon">flip_camera_ios</span>
-              </button>
-            )}
           </div>
           <div className="prompt-container">
             <textarea
