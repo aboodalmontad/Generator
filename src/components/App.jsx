@@ -178,6 +178,9 @@ export default function App() {
         if (/API key|PERMISSION_DENIED|authentication|invalid/i.test(e.message)) {
           userMessage =
             'حدث خطأ في المصادقة. يرجى التأكد من صحة مفتاح API الخاص بك والمحاولة مرة أخرى.'
+        } else if (/RESOURCE_EXHAUSTED|429|quota/i.test(e.message)) {
+          userMessage =
+            'لقد تجاوزت حصتك من الاستخدام المجاني. يرجى التحقق من خطتك وتفاصيل الفوترة، أو المحاولة مرة أخرى لاحقاً.'
         } else if (/حظر طلبك/.test(e.message)) {
           userMessage = e.message
         }
