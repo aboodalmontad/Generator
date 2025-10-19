@@ -170,11 +170,19 @@ export default function App() {
       }
     } catch (e) {
       console.error('Error generating image:', e)
-      let userMessage = 'حدث خطأ أثناء توليد الصورة.'
-      if (e && e.message && /API key|PERMISSION_DENIED/i.test(e.message)) {
-        userMessage =
-          'حدث خطأ في المصادقة. يرجى التأكد من صحة مفتاح API الخاص بك وأنه تم تكوينه بشكل صحيح لبيئة النشر.'
+      let userMessage = `حدث خطأ غير متوقع: ${
+        e.message || 'لا توجد تفاصيل إضافية.'
+      }`
+
+      if (e && e.message) {
+        if (/API key|PERMISSION_DENIED|authentication|invalid/i.test(e.message)) {
+          userMessage =
+            'حدث خطأ في المصادقة. يرجى التأكد من صحة مفتاح API الخاص بك والمحاولة مرة أخرى.'
+        } else if (/حظر طلبك/.test(e.message)) {
+          userMessage = e.message
+        }
       }
+
       setError(userMessage)
     } finally {
       setIsGenerating(false)

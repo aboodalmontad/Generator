@@ -57,7 +57,12 @@ const _generateImage = async ({model, prompt, inputFile, inputMimeType}) => {
       const response = await Promise.race([modelPromise, timeoutPromise])
 
       if (!response.candidates || response.candidates.length === 0) {
-        throw new Error('No candidates in response')
+        if (response?.promptFeedback?.blockReason) {
+          throw new Error(
+            `تم حظر طلبك للسبب التالي: ${response.promptFeedback.blockReason}.`
+          )
+        }
+        throw new Error('لم يتم العثور على نتائج صالحة في الاستجابة.')
       }
 
       const inlineDataPart = response.candidates[0].content.parts.find(
@@ -106,6 +111,11 @@ const _generateText = async ({model, prompt}) => {
       const response = await Promise.race([modelPromise, timeoutPromise])
 
       if (!response.text) {
+        if (response?.promptFeedback?.blockReason) {
+          throw new Error(
+            `تم حظر طلبك للسبب التالي: ${response.promptFeedback.blockReason}.`
+          )
+        }
         throw new Error('No text in response')
       }
 
