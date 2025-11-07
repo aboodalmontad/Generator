@@ -13,14 +13,19 @@ export default create(
     immer(() => ({
       didInit: false,
       customPrompt: '',
-      promptHistory: []
+      promptHistory: [],
+      imageIds: [],
+      modelProvider: 'gemini',
+      huggingFaceApiKey: ''
     })),
     {
       name: 'smart-camera-store',
       storage: indexedDBStorage,
       partialize: state => ({
         promptHistory: state.promptHistory,
-        customPrompt: state.customPrompt
+        customPrompt: state.customPrompt,
+        modelProvider: state.modelProvider,
+        huggingFaceApiKey: state.huggingFaceApiKey
       })
     }
   )
